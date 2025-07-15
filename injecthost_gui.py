@@ -5,6 +5,10 @@ from tkinter import messagebox, filedialog
 import sys
 import re
 import os
+import ipaddress
+import tempfile
+import shutil
+import time
 from datetime import datetime
 
 # Set appearance and color theme for consistent UI
@@ -297,23 +301,61 @@ class InjectHostApp(ctk.CTk):
         self.hostname_entry.delete(0, ctk.END)
 
     def is_valid_ip(self, ip_str):
-        parts = ip_str.split('.')
-        if len(parts) != 4:
+        """Validate IPv4 and IPv6 addresses using the ipaddress module."""
+        try:
+            ipaddress.ip_address(ip_str)
+            return True
+        except ValueError:
             return False
-        for part in parts:
-            if not part.isdigit() or not (0 <= int(part) <= 255):
-                return False
-        return True
 
     def load_hosts_file(self):
+        """Load hosts file with better error recovery."""
         try:
             with open("/etc/hosts", "r") as f:
                 lines = f.readlines()
             self.all_hosts_lines = [line.rstrip("\n") for line in lines if line.strip()]
             self.filter_hosts_list()
             self.clear_editing_state()
+            
+        except PermissionError:
+            custom_showerror(self, "Permission Error", 
+                           "Permission denied reading /etc/hosts.\n"
+                           "Please run this application with sudo.")
+            self.set_readonly_mode()
+        except FileNotFoundError:
+            custom_showerror(self, "File Not Found", 
+                           "/etc/hosts file not found.\n"
+                           "This is unusual - the hosts file should always exist.")
+            self.offer_recovery_options()
         except Exception as e:
-            custom_showerror(self, "Error", f"Error reading /etc/hosts:\n{e}")
+            custom_showerror(self, "Error", f"Unexpected error reading /etc/hosts:\n{e}")
+            self.offer_recovery_options()
+
+    def set_readonly_mode(self):
+        """Set the application to read-only mode when hosts file can't be accessed."""
+        self.add_button.configure(state="disabled", text="Read-Only Mode")
+        self.remove_button.configure(state="disabled")
+        self.root_status_label.configure(
+            text="⚠️ Running in read-only mode due to file access issues", 
+            text_color="orange"
+        )
+
+    def offer_recovery_options(self):
+        """Offer recovery options when hosts file can't be read."""
+        result = messagebox.askyesnocancel(
+            "Recovery Options",
+            "Unable to read the hosts file. Would you like to:\n\n"
+            "Yes - Continue in read-only mode\n"
+            "No - Exit application\n"
+            "Cancel - Retry reading the file"
+        )
+        if result is True:
+            self.set_readonly_mode()
+        elif result is False:
+            self.quit()
+        else:
+            # Retry
+            self.load_hosts_file()
 
     def filter_hosts_list(self, *args):
         search_text = self.search_var.get().lower()
