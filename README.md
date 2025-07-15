@@ -148,6 +148,7 @@ Disclaimer: Modifying system files like /etc/hosts requires caution. Always ensu
 
 
 🎓 Learning Resources & Shout-Outs
-If you’re new to cybersecurity or want to practice your skills in a safe, legal environment, check out platforms like TryHackMe, Hack The Box, and OverTheWire. These sites offer hands-on labs, challenges, and guided learning paths that are perfect for beginners and professionals alike.
+If you’re new to cybersecurity or want to practice your skills in a safe, legal environment, check out platforms like TryHackMe, Hack The Box, and OverTheWire.
+These sites offer hands-on labs, challenges, and guided learning paths that are perfect for beginners and professionals alike.
 
 They provide a great way to build your knowledge ethically and responsibly—just like this project encourages safe and authorized system management.
