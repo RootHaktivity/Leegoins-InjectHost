@@ -1,5 +1,11 @@
 # Host Editor (injecthost)
 
+
+<p align="center">
+  <img src="https://github.com/RootHaktivity/Leegoins-InjectHost/blob/2d82045dce0a439c247df6f0de78de4747baf85a/Leegions-InjectHost-Screenshot.png" alt="Leegions InjectHost Screenshot" />
+</p>
+
+
 A powerful and user-friendly Python application for managing your `/etc/hosts` file. This tool provides both a command-line interface (CLI) and a graphical user interface (GUI) to easily add, remove, enable, disable, and manage host entries, with features like syntax highlighting, entry validation, dynamic search, and logging.
 
 ## ✨ Features
