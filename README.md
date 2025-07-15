@@ -78,7 +78,9 @@ To launch the GUI:
 injecthost-gui
 
 
-The GUI will open, allowing you to manage your hosts file visually. Any output or errors from the GUI will be logged to ~/injecthost-gui.log (in your home directory).
+The GUI will open, allowing you to manage your hosts file visually.
+Any output or errors from the GUI will be logged to ~/injecthost-gui.log
+(in your home directory).
 
 Command-Line Interface (CLI)
 
