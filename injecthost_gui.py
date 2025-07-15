@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import messagebox, filedialog
 import sys
 import re
 import os
@@ -17,10 +16,17 @@ ctk.set_default_color_theme("dark-blue")  # Options: "blue", "dark-blue", "green
 
 try:
     from injecthost_logic import add_entry, check_root_status
-except ImportError:
+    from custom_dialogs import (
+        custom_showinfo, custom_showwarning, custom_showerror,
+        custom_askyesno, custom_askyesnocancel,
+        custom_askopenfilename, custom_asksaveasfilename
+    )
+except ImportError as e:
     root = tk.Tk()
     root.withdraw()
-    messagebox.showerror("Error", "Could not find 'injecthost_logic.py'. Please ensure it's in the same directory.")
+    # Fallback to standard messagebox for critical import errors
+    from tkinter import messagebox
+    messagebox.showerror("Error", f"Could not find required modules: {e}\nPlease ensure all files are in the same directory.")
     sys.exit(1)
 
 LOG_DIR = os.path.expanduser("~/.injecthost")
@@ -43,17 +49,7 @@ def log_action(action, ip, hostname, old_entry=None):
         elif action == "import":
             f.write(f"{timestamp} - IMPORT - {old_entry}\n")
 
-def custom_askyesno(parent, title, message):
-    return messagebox.askyesno(title, message, parent=parent)
-
-def custom_showinfo(parent, title, message):
-    return messagebox.showinfo(title, message, parent=parent)
-
-def custom_showwarning(parent, title, message):
-    return messagebox.showwarning(title, message, parent=parent)
-
-def custom_showerror(parent, title, message):
-    return messagebox.showerror(title, message, parent=parent)
+# Custom dialog functions are now imported from custom_dialogs.py
 
 def is_valid_hostname(hostname):
     if len(hostname) > 255:
@@ -342,7 +338,8 @@ class InjectHostApp(ctk.CTk):
 
     def offer_recovery_options(self):
         """Offer recovery options when hosts file can't be read."""
-        result = messagebox.askyesnocancel(
+        result = custom_askyesnocancel(
+            self,
             "Recovery Options",
             "Unable to read the hosts file. Would you like to:\n\n"
             "Yes - Continue in read-only mode\n"
@@ -429,7 +426,8 @@ class InjectHostApp(ctk.CTk):
         text_area.configure(state="disabled")  # Read-only
 
     def export_hosts_file(self):
-        file_path = filedialog.asksaveasfilename(
+        file_path = custom_asksaveasfilename(
+            self,
             title="Export Hosts File",
             defaultextension=".hosts",
             filetypes=[("Hosts files", "*.hosts"), ("All files", "*.*")]
@@ -446,7 +444,8 @@ class InjectHostApp(ctk.CTk):
             custom_showerror(self, "Export Failed", f"Failed to export hosts file:\n{e}")
 
     def import_hosts_file(self):
-        file_path = filedialog.askopenfilename(
+        file_path = custom_askopenfilename(
+            self,
             title="Import Hosts File",
             filetypes=[("Hosts files", "*.hosts"), ("All files", "*.*")]
         )
