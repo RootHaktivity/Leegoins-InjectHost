@@ -120,7 +120,8 @@ The script will attempt to remove the installed files and prompt you about remov
 
 Manually remove Sudoers entry (if not auto-removed):
 
-If you added a passwordless sudoers entry for injecthost-gui, it's good practice to remove it manually if the uninstall script doesn't.
+If you added a passwordless sudoers entry for injecthost-gui,
+it's good practice to remove it manually if the uninstall script doesn't.
 
 sudo visudo
 
@@ -132,7 +133,8 @@ your_username ALL=(ALL) NOPASSWD: /home/kali/.local/bin/
 
 🤝 Contributing
 
-Contributions are welcome! If you have suggestions for improvements, bug reports, or want to add new features, please feel free to:
+Contributions are welcome! If you have suggestions for improvements,
+bug reports, or want to add new features, please feel free to:
 
 Fork the repository.
 Create a new branch (git checkout -b feature/YourFeature).
