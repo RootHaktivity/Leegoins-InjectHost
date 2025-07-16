@@ -4,7 +4,7 @@
 
 A comprehensive tool for managing `/etc/hosts` files with advanced features including network utilities, configuration management, validation & linting, and more.
 
-![Leegion InjectHost Screenshot](Leegions-InjectHost-Screenshot.png)
+![Leegion InjectHost Screenshot](LeggionInjectHostv2.0.0.png)
 
 ## ✨ Features
 
