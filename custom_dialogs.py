@@ -20,11 +20,7 @@ class CustomDialog(ctk.CTkToplevel):
         self.title(title)
         self.geometry("400x200")
         self.resizable(False, False)
-        self.grab_set()  # Make dialog modal
         self.transient(parent)  # Make dialog transient to parent
-        
-        # Center the dialog on parent
-        self.center_on_parent(parent)
         
         # Configure grid
         self.grid_columnconfigure(0, weight=1)
@@ -33,33 +29,71 @@ class CustomDialog(ctk.CTkToplevel):
         # Create widgets
         self.create_widgets(message, **kwargs)
         
-        # Focus on the dialog
+        # Ensure window is rendered
+        self.update()
+        
+        # Center the dialog on parent
+        self.center_on_parent(parent)
+        
+        # Ensure the dialog is visible and ready before grabbing
+        self.update_idletasks()
+        self.lift()  # Bring to front
+        self.focus_force()  # Force focus
+        
+        # Now grab focus after window is viewable
+        try:
+            self.grab_set()  # Make dialog modal
+        except:
+            # If grab fails, continue without modal behavior
+            pass
+        
+        # Ensure dialog is visible and focused
         self.focus_set()
         self.wait_window()
     
     def center_on_parent(self, parent):
         """Center the dialog on its parent window."""
-        self.update_idletasks()
-        
-        # Get parent position and size
-        parent_x = parent.winfo_x()
-        parent_y = parent.winfo_y()
-        parent_width = parent.winfo_width()
-        parent_height = parent.winfo_height()
-        
-        # Get dialog size
-        dialog_width = self.winfo_reqwidth()
-        dialog_height = self.winfo_reqheight()
-        
-        # Calculate center position
-        x = parent_x + (parent_width - dialog_width) // 2
-        y = parent_y + (parent_height - dialog_height) // 2
-        
-        # Ensure dialog stays on screen
-        x = max(0, x)
-        y = max(0, y)
-        
-        self.geometry(f"+{x}+{y}")
+        try:
+            self.update_idletasks()
+            
+            # Get parent position and size
+            parent_x = parent.winfo_x()
+            parent_y = parent.winfo_y()
+            parent_width = parent.winfo_width()
+            parent_height = parent.winfo_height()
+            
+            # Check if parent coordinates are valid
+            if parent_width <= 0 or parent_height <= 0:
+                # Fallback to screen center
+                screen_width = self.winfo_screenwidth()
+                screen_height = self.winfo_screenheight()
+                x = (screen_width - 400) // 2
+                y = (screen_height - 200) // 2
+            else:
+                # Get dialog size
+                dialog_width = self.winfo_reqwidth()
+                dialog_height = self.winfo_reqheight()
+                
+                # Calculate center position
+                x = parent_x + (parent_width - dialog_width) // 2
+                y = parent_y + (parent_height - dialog_height) // 2
+                
+                # Ensure dialog stays on screen
+                x = max(0, x)
+                y = max(0, y)
+            
+            self.geometry(f"+{x}+{y}")
+        except Exception as e:
+            # Fallback to screen center if anything goes wrong
+            try:
+                screen_width = self.winfo_screenwidth()
+                screen_height = self.winfo_screenheight()
+                x = (screen_width - 400) // 2
+                y = (screen_height - 200) // 2
+                self.geometry(f"+{x}+{y}")
+            except:
+                # Last resort - just use default positioning
+                pass
     
     def create_widgets(self, message: str, **kwargs):
         """Create dialog widgets. Override in subclasses."""

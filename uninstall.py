@@ -1,87 +1,52 @@
 #!/usr/bin/env python3
 import os
 import sys
-import subprocess
 import shutil
+import subprocess
 
-TARGET_NAME = "injecthost"
-SYSTEM_BIN = "/usr/local/bin"
-USER_BIN = os.path.expanduser("~/.local/bin")
-SUDOERS_FILE = "/etc/sudoers"
-SUDOERS_BACKUP = "/etc/sudoers.bak"
+INSTALL_DIR = "/usr/local/lib/injecthost"
+BIN_PATH = "/usr/local/bin/injecthost"
+GUI_BIN_PATH = "/usr/local/bin/injecthost-gui"
+REQUIRED_MODULE = "customtkinter"
 
-def remove_file(path):
-    if os.path.exists(path):
-        try:
-            os.remove(path)
-            print(f"Removed: {path}")
-        except PermissionError:
-            print(f"Permission denied removing {path}. Try running with sudo.")
+
+def check_root():
+    if os.geteuid() != 0:
+        print("[!] Please run as root (sudo python3 uninstall.py)")
+        sys.exit(1)
+
+def remove_path(path):
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+        print(f"[+] Removed directory: {path}")
+    elif os.path.isfile(path):
+        os.remove(path)
+        print(f"[+] Removed file: {path}")
     else:
-        print(f"File not found (skipped): {path}")
+        print(f"[ ] Not found (already removed): {path}")
 
-def check_sudoers_entry():
+def uninstall_customtkinter():
+    print("\nDo you want to uninstall the 'customtkinter' Python package as well? [y/N]: ", end='')
     try:
-        with open(SUDOERS_FILE, "r") as f:
-            lines = f.readlines()
-        for line in lines:
-            if TARGET_NAME in line and "NOPASSWD" in line:
-                return True
-        return False
-    except Exception as e:
-        print(f"Could not read sudoers file: {e}")
-        return False
-
-def backup_sudoers():
-    try:
-        shutil.copy2(SUDOERS_FILE, SUDOERS_BACKUP)
-        print(f"Backup of sudoers file created at {SUDOERS_BACKUP}")
-    except Exception as e:
-        print(f"Failed to backup sudoers file: {e}")
-
-def remove_sudoers_entry():
-    try:
-        with open(SUDOERS_FILE, "r") as f:
-            lines = f.readlines()
-        new_lines = [line for line in lines if not (TARGET_NAME in line and "NOPASSWD" in line)]
-        backup_sudoers()
-        with open(SUDOERS_FILE, "w") as f:
-            f.writelines(new_lines)
-        print("Removed sudoers entry for injecthost.")
-    except Exception as e:
-        print(f"Failed to modify sudoers file: {e}")
-
-def prompt_sudoers_removal():
-    if not check_sudoers_entry():
-        print("No sudoers entry for injecthost found.")
-        return
-
-    print("\nSudoers entry for injecthost detected.")
-    choice = input("Do you want to (e)dit sudoers manually or (a)uto-remove the entry? (e/a/skip): ").strip().lower()
-
-    if choice == 'e':
-        print("Opening sudoers file with visudo...")
-        subprocess.run(["sudo", "visudo"])
-    elif choice == 'a':
-        print("Attempting to automatically remove the sudoers entry...")
-        remove_sudoers_entry()
+        resp = input().strip().lower()
+    except EOFError:
+        resp = 'n'
+    if resp == 'y':
+        subprocess.run(["pip3", "uninstall", "-y", REQUIRED_MODULE])
+        print("[+] customtkinter uninstalled.")
     else:
-        print("Skipping sudoers modification. Remember to remove it manually if needed.")
+        print("[ ] Skipped uninstalling customtkinter.")
 
 def main():
-    print("Uninstalling injecthost...")
-
-    system_path = os.path.join(SYSTEM_BIN, TARGET_NAME)
-    user_wrapper_path = os.path.join(USER_BIN, TARGET_NAME)
-
-    # Remove system-wide script
-    remove_file(system_path)
-
-    # Remove user wrapper script
-    remove_file(user_wrapper_path)
-
-    # Handle sudoers entry
-    prompt_sudoers_removal()
+    check_root()
+    print("[+] Uninstalling InjectHost...")
+    remove_path(INSTALL_DIR)
+    remove_path(BIN_PATH)
+    remove_path(GUI_BIN_PATH)
+    print("\n[✓] InjectHost uninstalled.")
+    uninstall_customtkinter()
+    print("\nIf you added any sudoers entries for injecthost, you may want to remove them manually (sudo visudo).\n")
+    print("[✓] Uninstallation complete.")
 
 if __name__ == "__main__":
     main()

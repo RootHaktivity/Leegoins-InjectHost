@@ -1,163 +1,246 @@
-# Host Editor (injecthost)
+# 🌐 Leegion InjectHost
 
+**Advanced Hosts File Management Tool with CLI and GUI**
 
-<p align="center">
-  <img src="https://github.com/RootHaktivity/Leegoins-InjectHost/blob/2d82045dce0a439c247df6f0de78de4747baf85a/Leegions-InjectHost-Screenshot.png" alt="Leegions InjectHost Screenshot" />
-</p>
+A comprehensive tool for managing `/etc/hosts` files with advanced features including network utilities, configuration management, validation & linting, and more.
 
-
-A powerful and user-friendly Python application for managing your `/etc/hosts` file. This tool provides both a command-line interface (CLI) and a graphical user interface (GUI) to easily add, remove, enable, disable, and manage host entries, with features like syntax highlighting, entry validation, dynamic search, and logging.
+![Leegion InjectHost Screenshot](Leegions-InjectHost-Screenshot.png)
 
 ## ✨ Features
 
--   **CLI & GUI:** Choose your preferred way to interact with the hosts file.
--   **Safe Operations:** Automatically backs up your `/etc/hosts` file before any modifications.
--   **Entry Management:**
-    -   Add new host entries (IP address, hostname, optional comments).
-    -   Enable/disable existing entries.
-    -   Remove entries.
--   **Validation:** Ensures correct IP address and hostname formats.
--   **Syntax Highlighting (GUI):** Improves readability of the hosts file content.
--   **Dynamic Search (GUI):** Quickly find specific entries.
--   **Action Logging (GUI):** Keeps a record of all changes made.
--   **Import/Export (GUI):** Easily manage host entries from external files.
--   **Passwordless Sudo Integration:** Seamlessly manage your hosts file without repeated password prompts (requires sudoers configuration).
+### 🔧 Core Functionality
+- **Add/Remove/Update** host entries with validation
+- **Batch operations** for multiple entries
+- **Search and filter** host entries
+- **Automatic backups** before modifications
+- **Real-time validation** of IP addresses and hostnames
+- **Statistics and reporting** of hosts file content
 
-## 🚀 Installation
+### 🌐 Network Utilities
+- **DNS cache flushing** for immediate effect
+- **Host connectivity testing** (ping, HTTP, HTTPS)
+- **Network scanning** for active hosts
+- **SSL certificate information** retrieval
+- **Hostname resolution testing**
+- **Network diagnostics** and troubleshooting
 
-This project requires Python 3 and `customtkinter`. The `install.py` script automates the setup process, including creating a virtual environment and setting up necessary permissions.
+### 📁 Configuration Management
+- **Save/load configurations** for different environments
+- **Configuration templates** for common scenarios
+- **Import/export** configurations to files
+- **Rename and describe** configurations
+- **Quick apply** configurations with backup
+- **Configuration statistics** and metadata
 
-**Important:** The installation script requires `sudo` privileges to install the command-line tools and set up the GUI wrapper script in system paths.
+### 🔍 Advanced Validation & Linting
+- **Comprehensive validation** of hosts file syntax
+- **IPv4 & IPv6 address validation**
+- **Duplicate detection** (IPs and hostnames)
+- **Format consistency checking** (spacing, tabs, etc.)
+- **Automatic formatting** with consistent styling
+- **Detailed validation reports** with suggestions
+- **Real-time linting** with actionable feedback
 
-1.  **Clone the repository:**
+### 🎨 Modern GUI
+- **Dark theme** with professional appearance
+- **Responsive layout** with two-column design
+- **Color-coded buttons** for different actions
+- **Real-time search** and filtering
+- **Syntax highlighting** in hosts display
+- **Integrated validation tools**
+- **Network tools window**
+- **Configuration management interface**
 
-    ```bash
-    git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-    cd YOUR_REPO_NAME
-    ```
+## 🚀 Quick Start
 
-    *(Remember to replace `YOUR_USERNAME` and `YOUR_REPO_NAME` with your actual GitHub username and repository name.)*
-
-2.  **Run the installation script:**
-
-    ```bash
-    sudo python3 install.py
-    ```
-
-    Follow the on-screen prompts to choose which components (CLI, GUI, or both) and installation type you prefer.
-
-    -   **For GUI installation with passwordless sudo (recommended for convenience):**
-        -   Choose option `2` (GUI only) or `3` (Both CLI and GUI).
-        -   Choose installation type `3` (System-wide with sudoers + wrapper script).
-
-3.  **Configure Sudoers for Passwordless GUI (if you chose option 3 above):**
-
-    After the installation, the script will output an `IMPORTANT` message with a line to add to your `/etc/sudoers` file. This allows `injecthost-gui` to run with root privileges without prompting for a password.
-
-    Open your sudoers file safely:
-
-    ```bash
-    sudo visudo
-    ```
-
-    Add the line provided by the `install.py` script. It will look something like this (replace `your_username` with your actual username, e.g., `kali`):
-
-    ```
-    your_username ALL=(ALL) NOPASSWD: /usr/local/bin/injecthost-gui
-    ```
-
-    Save and exit `visudo`.
-
-## 💡 Usage
-
-### Graphical User Interface (GUI)
-
-To launch the GUI:
+### Installation
 
 ```bash
-injecthost-gui
+# Clone the repository
+git clone https://github.com/yourusername/Leegoins-InjectHost.git
+cd Leegoins-InjectHost
 
+# Install with sudo (required for hosts file access)
+sudo python3 install.py
+```
 
-The GUI will open, allowing you to manage your hosts file visually.
-Any output or errors from the GUI will be logged to ~/injecthost-gui.log
-(in your home directory).
+### Usage
 
-Command-Line Interface (CLI)
+```bash
+# CLI version
+sudo injecthost
 
-To use the CLI:
+# GUI version
+sudo injecthost-gui
+```
 
-injecthost [command] [arguments]
+## 📖 CLI Commands
 
+### Basic Operations
+```bash
+# Add a host entry
+sudo injecthost add 192.168.1.100 myserver.local
 
-Examples:
+# Remove a host entry
+sudo injecthost remove 192.168.1.100 myserver.local
 
-Add an entry:
-injecthost add 192.168.1.10 mylocalmachine.com "My local dev server"
+# Update a host entry
+sudo injecthost update 192.168.1.100 myserver.local 192.168.1.101 newserver.local
 
-Disable an entry:
-injecthost disable myoldserver.com
+# List all entries
+sudo injecthost list
 
-Enable an entry:
-injecthost enable mylocalmachine.com
+# Batch add from file
+sudo injecthost batch-add hosts.txt
+```
 
-Remove an entry:
-injecthost remove myoldserver.com
+### Network Tools
+```bash
+# Flush DNS cache
+sudo injecthost flush-dns
 
-Show current hosts file content:
-injecthost show
+# Test host connectivity
+sudo injecthost test
 
-View help:
-injecthost --help
+# Scan local network
+sudo injecthost scan 192.168.1
+```
 
-🗑️ Uninstallation
+### Configuration Management
+```bash
+# Save current hosts as configuration
+sudo injecthost config save "production" --description "Production environment"
 
-To remove the Host Editor:
+# List configurations
+sudo injecthost config list
 
-Run the uninstallation script:
+# Apply configuration
+sudo injecthost config apply "production"
 
-sudo python3 uninstall.py
+# Export configuration
+sudo injecthost config export "production" production_hosts.txt
 
+# Import configuration
+sudo injecthost config import hosts_backup.txt --overwrite
+```
 
-The script will attempt to remove the installed files and prompt you about removing the sudoers entry.
+### Validation & Linting
+```bash
+# Validate hosts file
+sudo injecthost validate
 
-Manually remove Sudoers entry (if not auto-removed):
+# Detailed validation report
+sudo injecthost validate --detailed
 
-If you added a passwordless sudoers entry for injecthost-gui,
-it's good practice to remove it manually if the uninstall script doesn't.
+# Format hosts file
+sudo injecthost format
+```
 
-sudo visudo
+## 🎯 GUI Features
 
+### Main Interface
+- **Add/Edit Section**: Input fields for IP and hostname with validation
+- **Quick Actions**: Search, refresh, and clear functions
+- **Hosts Display**: Real-time view of current hosts file with syntax highlighting
+- **Menu System**: Access to all advanced features
 
-Delete the line you previously added:
+### Network Tools Window
+- **DNS Flush**: Clear DNS cache for immediate effect
+- **Host Testing**: Test connectivity, ping, and HTTP/HTTPS
+- **Network Scanning**: Discover active hosts on local network
+- **Real-time Output**: Threaded operations with live feedback
 
-your_username ALL=(ALL) NOPASSWD:  /usr/local/bin/injecthost-gui
-your_username ALL=(ALL) NOPASSWD: /home/kali/.local/bin/
+### Configuration Manager
+- **Configuration List**: View all saved configurations
+- **Create/Edit**: Save current hosts with name and description
+- **Apply Configurations**: Switch between different setups
+- **Import/Export**: Share configurations between systems
 
-🤝 Contributing
+### Validation Window
+- **Run Validation**: Basic validation with summary
+- **Detailed Report**: Comprehensive analysis with file statistics
+- **Format File**: Auto-format with consistent styling
+- **Issue Tracking**: Line-by-line validation with suggestions
 
-Contributions are welcome! If you have suggestions for improvements,
-bug reports, or want to add new features, please feel free to:
+## 🛠️ Architecture
 
-Fork the repository.
-Create a new branch (git checkout -b feature/YourFeature).
-Make your changes.
-Commit your changes (git commit -m 'Add some feature').
-Push to the branch (git push origin feature/YourFeature).
-Open a Pull Request.
-📄 License
+### Core Components
+- **`injecthost_logic.py`**: Business logic and validation
+- **`repository.py`**: Data access layer with caching
+- **`models.py`**: Data models and validation
+- **`config.py`**: Configuration management
+- **`validation.py`**: Advanced validation and linting
 
-This project is licensed under the MIT License.
+### GUI Components
+- **`injecthost_gui.py`**: Main GUI application
+- **`custom_dialogs.py`**: Custom dialog implementations
+- **`config_gui.py`**: Configuration management interface
 
-Disclaimer: Modifying system files like /etc/hosts requires caution.
-Always ensure you understand the changes you are making.
-The author is not responsible for any system issues arising from improper use.
+### Network Components
+- **`network_utils.py`**: Network utilities and diagnostics
+- **`config_manager.py`**: Configuration persistence and management
 
+## 🔧 Requirements
 
-🎓 Learning Resources & Shout-Outs
-If you’re new to cybersecurity or want to practice your skills in a safe,
-legal environment,check out platforms like TryHackMe, Hack The Box, and OverTheWire.
-These sites offer hands-on labs, challenges, and guided learning paths that are perfect
-for beginners and professionals alike.
+- **Python 3.7+**
+- **customtkinter** (auto-installed)
+- **Root privileges** (for hosts file access)
+- **Linux/Unix system**
 
-They provide a great way to build your knowledge ethically and responsibly—just like
-this project encourages safe and authorized system management.
+## 📋 File Structure
+
+```
+Leegoins-InjectHost/
+├── injecthost.py              # CLI main application
+├── injecthost_gui.py          # GUI main application
+├── injecthost_logic.py        # Business logic
+├── repository.py              # Data access layer
+├── models.py                  # Data models
+├── config.py                  # Configuration
+├── validation.py              # Validation & linting
+├── network_utils.py           # Network utilities
+├── config_manager.py          # Configuration management
+├── config_gui.py              # Config GUI
+├── custom_dialogs.py          # Custom dialogs
+├── install.py                 # Installation script
+├── uninstall.py               # Uninstallation script
+├── injecthost.sh              # CLI wrapper
+├── injecthost_wrapper.py      # GUI wrapper
+└── README.md                  # This file
+```
+
+## 🚨 Security & Ethics
+
+### Important Notes
+- **Root privileges required**: This tool modifies system files
+- **Backup protection**: Automatic backups before any changes
+- **Validation**: All entries validated before modification
+- **Ethical use**: Only use on systems you own or have permission to modify
+
+### Best Practices
+- Always review changes before applying
+- Use configurations for different environments
+- Regular validation of hosts file integrity
+- Keep backups of important configurations
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- **customtkinter** for the modern GUI framework
+- **Python community** for excellent libraries
+- **Security professionals** for feedback and suggestions
+
+---
+
+**⚠️ Disclaimer**: This tool is for educational and legitimate system administration purposes only. Always ensure you have proper authorization before modifying system files.

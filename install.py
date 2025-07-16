@@ -2,214 +2,175 @@
 import os
 import sys
 import shutil
-import stat
 import subprocess
-import getpass
-import pwd
+from pathlib import Path
 
-CLI_SCRIPT = "injecthost.py"
-CLI_CMD = "injecthost"
+INSTALL_DIR = "/usr/local/lib/injecthost"
+BIN_PATH = "/usr/local/bin/injecthost"
+GUI_BIN_PATH = "/usr/local/bin/injecthost-gui"
+WRAPPER_SCRIPT = '''#!/bin/bash
+cd /usr/local/lib/injecthost
 
-GUI_SCRIPT = "injecthost_gui.py"
-GUI_CMD = "injecthost-gui"
+# Try to find a Python installation with customtkinter
+PYTHON_PATHS=("/usr/bin/python3" "/usr/bin/python3.11" "/usr/bin/python3.10" "/usr/bin/python3.9" "/usr/bin/python3.8")
 
-SYSTEM_BIN = "/usr/local/bin"
-VENV_DIR = os.path.expanduser("~/injecthost-venv")
+for python_path in "${PYTHON_PATHS[@]}"; do
+    if [ -f "$python_path" ] && "$python_path" -c "import customtkinter" 2>/dev/null; then
+        exec "$python_path" injecthost.py "$@"
+    fi
+done
 
-def is_root():
-    return os.geteuid() == 0
+# If no Python with customtkinter found, try the default
+exec /usr/bin/python3 injecthost.py "$@"
+'''
 
-def make_executable(path):
-    st = os.stat(path)
-    os.chmod(path, st.st_mode | stat.S_IEXEC)
+GUI_WRAPPER_SCRIPT = '''#!/bin/bash
+cd /usr/local/lib/injecthost
 
-def set_ownership(path, username):
-    try:
-        uid = pwd.getpwnam(username).pw_uid
-        gid = pwd.getpwnam(username).pw_gid
-        os.chown(path, uid, gid)
-    except Exception as e:
-        print(f"Warning: Could not change ownership of {path} to {username}: {e}")
+# Try to find a Python installation with customtkinter
+PYTHON_PATHS=("/usr/bin/python3" "/usr/bin/python3.11" "/usr/bin/python3.10" "/usr/bin/python3.9" "/usr/bin/python3.8")
 
-def add_shebang_if_missing(path):
-    try:
-        with open(path, "r") as f:
-            lines = f.readlines()
-        if not lines or not lines[0].startswith("#!"):
-            lines.insert(0, "#!/usr/bin/env python3\n")
-            with open(path, "w") as f:
-                f.writelines(lines)
-            print(f"Added shebang line to {path}.")
-    except Exception as e:
-        print(f"Error reading or writing {path}: {e}")
+for python_path in "${PYTHON_PATHS[@]}"; do
+    if [ -f "$python_path" ] && "$python_path" -c "import customtkinter" 2>/dev/null; then
+        exec "$python_path" injecthost_gui.py "$@"
+    fi
+done
+
+# If no Python with customtkinter found, show error
+echo "Error: customtkinter not found. Please install it first:"
+echo "  sudo pip3 install --break-system-packages customtkinter"
+echo "  or"
+echo "  sudo apt install python3-customtkinter"
+exit 1
+'''
+
+REQUIRED_PYTHON = "/usr/bin/python3"
+REQUIRED_MODULE = "customtkinter"
+
+
+def check_root():
+    if os.geteuid() != 0:
+        print("[!] Please run as root (sudo python3 install.py)")
         sys.exit(1)
 
-def confirm_overwrite(path):
-    if os.path.exists(path):
-        resp = input(f"File {path} already exists. Overwrite? (y/n): ").strip().lower()
-        return resp == 'y'
-    return True
-
-def copy_and_prepare(src_path, target_path):
-    if not confirm_overwrite(target_path):
-        print("Installation cancelled.")
-        return False
+def check_python_module(python_path, module_name):
+    """Check if a module is available in a specific Python installation."""
     try:
-        shutil.copy2(src_path, target_path)
-        make_executable(target_path)
-        print(f"Installed to {target_path}")
+        result = subprocess.run([python_path, "-c", f"import {module_name}"], 
+                              capture_output=True, text=True, check=True)
         return True
-    except Exception as e:
-        print(f"Error copying {src_path} to {target_path}: {e}")
-        sys.exit(1)
+    except subprocess.CalledProcessError:
+        return False
 
-def create_virtualenv():
-    if not os.path.isdir(VENV_DIR):
-        print(f"Creating virtual environment at {VENV_DIR}...")
-        subprocess.check_call([sys.executable, "-m", "venv", VENV_DIR])
-    else:
-        print(f"Virtual environment already exists at {VENV_DIR}")
+def find_python_with_module(module_name):
+    """Find a Python installation that has the required module."""
+    python_paths = [
+        "/usr/bin/python3",
+        "/usr/bin/python3.11",
+        "/usr/bin/python3.10",
+        "/usr/bin/python3.9",
+        "/usr/bin/python3.8"
+    ]
+    
+    for python_path in python_paths:
+        if os.path.exists(python_path) and check_python_module(python_path, module_name):
+            return python_path
+    return None
 
-def install_customtkinter():
-    print("Installing/upgrading pip and customtkinter in virtual environment...")
-    pip_path = os.path.join(VENV_DIR, "bin", "pip")
-    subprocess.check_call([pip_path, "install", "--upgrade", "pip"])
-    subprocess.check_call([pip_path, "install", "customtkinter"])
-
-def create_wrapper_script():
-    wrapper_path = os.path.join(SYSTEM_BIN, GUI_CMD)
-    if not confirm_overwrite(wrapper_path):
-        print("Installation cancelled.")
+def install_dependencies():
+    print("[+] Checking for customtkinter...")
+    
+    # First, try to find a Python installation that already has customtkinter
+    python_with_module = find_python_with_module(REQUIRED_MODULE)
+    if python_with_module:
+        print(f"[+] customtkinter found in {python_with_module}")
+        global REQUIRED_PYTHON
+        REQUIRED_PYTHON = python_with_module
         return
-
-    wrapper_content = f"""#!/bin/bash
-VENV_PYTHON="{VENV_DIR}/bin/python"
-SCRIPT_PATH="{os.path.abspath(GUI_SCRIPT)}"
-
-nohup sudo -E "$VENV_PYTHON" "$SCRIPT_PATH" "$@" > /tmp/injecthost-gui.log 2>&1 &
-
-echo "injecthost-gui started in background. Logs: /tmp/injecthost-gui.log"
-"""
+    
+    # Try to install via pip with different approaches
+    print("[!] customtkinter not found. Attempting to install...")
+    
+    # Method 1: Try pip3 directly
     try:
-        with open(wrapper_path, "w") as f:
-            f.write(wrapper_content)
-        make_executable(wrapper_path)
-        sudo_user = os.environ.get("SUDO_USER") or getpass.getuser()
-        set_ownership(wrapper_path, sudo_user)
-        print(f"Created detached wrapper script at {wrapper_path} with ownership set to {sudo_user}")
-    except Exception as e:
-        print(f"Error creating wrapper script: {e}")
-        sys.exit(1)
-
-def install_system_wide(script_name, cmd_name):
-    target_path = os.path.join(SYSTEM_BIN, cmd_name)
-    return copy_and_prepare(script_name, target_path)
-
-def install_user_local(script_name, cmd_name):
-    user_bin = os.path.expanduser("~/.local/bin")
-    os.makedirs(user_bin, exist_ok=True)
-    target_path = os.path.join(user_bin, cmd_name)
-    return copy_and_prepare(script_name, target_path)
-
-def install_with_sudoers(script_name, cmd_name):
-    if not is_root():
-        print("You need to run this script with sudo for this install option.")
-        sys.exit(1)
-
-    target_path = os.path.join(SYSTEM_BIN, cmd_name)
-    if not copy_and_prepare(script_name, target_path):
+        print("[+] Trying pip3 install customtkinter...")
+        subprocess.run(["pip3", "install", "customtkinter"], check=True)
+        print("[+] customtkinter installed via pip3.")
         return
-
-    sudo_user = os.environ.get("SUDO_USER")
-    if sudo_user:
-        user_home = os.path.expanduser(f"~{sudo_user}")
-        user_bin = os.path.join(user_home, ".local", "bin")
-    else:
-        user_home = os.path.expanduser("~")
-        user_bin = os.path.join(user_home, ".local", "bin")
-        sudo_user = getpass.getuser()
-
-    os.makedirs(user_bin, exist_ok=True)
-    wrapper_path = os.path.join(user_bin, cmd_name)
-
-    if not confirm_overwrite(wrapper_path):
-        print("Installation cancelled.")
-        return
-
-    wrapper_content = f"""#!/bin/bash
-sudo {target_path} "$@"
-"""
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    
+    # Method 2: Try with --break-system-packages (not recommended but might work)
     try:
-        with open(wrapper_path, "w") as f:
-            f.write(wrapper_content)
-        make_executable(wrapper_path)
-        set_ownership(wrapper_path, sudo_user)
-        print(f"Created wrapper script at {wrapper_path} with ownership set to {sudo_user}")
-    except Exception as e:
-        print(f"Error creating wrapper script: {e}")
-        sys.exit(1)
+        print("[+] Trying pip install with --break-system-packages...")
+        subprocess.run([REQUIRED_PYTHON, "-m", "pip", "install", "--break-system-packages", "customtkinter"], check=True)
+        print("[+] customtkinter installed with --break-system-packages.")
+        return
+    except subprocess.CalledProcessError:
+        pass
+    
+    # Method 3: Try apt install
+    try:
+        print("[+] Trying apt install python3-customtkinter...")
+        subprocess.run(["apt", "update"], check=True)
+        subprocess.run(["apt", "install", "-y", "python3-customtkinter"], check=True)
+        print("[+] customtkinter installed via apt.")
+        return
+    except subprocess.CalledProcessError:
+        pass
+    
+    # If all methods fail, provide manual instructions
+    print("\n[!] Automatic installation failed. Please install customtkinter manually:")
+    print("\nOption 1 - Create a virtual environment:")
+    print("  python3 -m venv ~/injecthost_env")
+    print("  source ~/injecthost_env/bin/activate")
+    print("  pip install customtkinter")
+    print("  # Then modify the wrapper script to use the virtual environment Python")
+    print("\nOption 2 - Use pipx (recommended):")
+    print("  sudo apt install pipx")
+    print("  pipx install customtkinter")
+    print("\nOption 3 - Force install (use with caution):")
+    print("  sudo pip3 install --break-system-packages customtkinter")
+    print("\nOption 4 - Install via apt (if available):")
+    print("  sudo apt update")
+    print("  sudo apt install python3-customtkinter")
+    print("\nAfter installing customtkinter, run this installer again.")
+    sys.exit(1)
 
-    print("\nIMPORTANT:")
-    print(f"To allow running '{cmd_name}' without typing a password, add this line to your sudoers file:")
-    print(f"\n  {sudo_user} ALL=(ALL) NOPASSWD: {target_path}\n")
-    print("Edit sudoers safely with: sudo visudo")
-    print(f"After that, you can run the tool simply by typing:\n\n  {cmd_name}\n")
+def copy_files():
+    print(f"[+] Copying .py files to {INSTALL_DIR} ...")
+    os.makedirs(INSTALL_DIR, exist_ok=True)
+    for fname in os.listdir('.'):
+        if fname.endswith('.py'):
+            shutil.copy2(fname, os.path.join(INSTALL_DIR, fname))
+    print("[+] All Python files copied.")
+
+def install_wrapper():
+    print(f"[+] Installing CLI wrapper script to {BIN_PATH} ...")
+    with open(BIN_PATH, 'w') as f:
+        f.write(WRAPPER_SCRIPT)
+    os.chmod(BIN_PATH, 0o755)
+    print("[+] CLI wrapper script installed and made executable.")
+    
+    print(f"[+] Installing GUI wrapper script to {GUI_BIN_PATH} ...")
+    with open(GUI_BIN_PATH, 'w') as f:
+        f.write(GUI_WRAPPER_SCRIPT)
+    os.chmod(GUI_BIN_PATH, 0o755)
+    print("[+] GUI wrapper script installed and made executable.")
 
 def main():
-    # Check scripts exist
-    missing = []
-    for script in [CLI_SCRIPT, GUI_SCRIPT]:
-        if not os.path.isfile(script):
-            missing.append(script)
-    if missing:
-        print(f"Error: The following required script(s) are missing: {', '.join(missing)}")
-        sys.exit(1)
-
-    # Add shebang lines if missing
-    add_shebang_if_missing(CLI_SCRIPT)
-    add_shebang_if_missing(GUI_SCRIPT)
-
-    print("Which component do you want to install?")
-    print("1) CLI only")
-    print("2) GUI only")
-    print("3) Both CLI and GUI")
-    choice = input("Enter choice (1, 2 or 3): ").strip()
-    if choice not in {'1', '2', '3'}:
-        print("Invalid choice. Exiting.")
-        sys.exit(1)
-
-    print("\nChoose installation type:")
-    print("1) System-wide (requires sudo/root)")
-    print("2) Current user only (no sudo required)")
-    print("3) System-wide with sudoers + wrapper script (passwordless sudo for this tool)")
-    install_type = input("Enter choice (1, 2 or 3): ").strip()
-    if install_type not in {'1', '2', '3'}:
-        print("Invalid choice. Exiting.")
-        sys.exit(1)
-
-    def install_component(script, cmd):
-        if install_type == '1':
-            if not is_root():
-                print("You need to run this script with sudo for system-wide install.")
-                sys.exit(1)
-            install_system_wide(script, cmd)
-        elif install_type == '2':
-            install_user_local(script, cmd)
-        elif install_type == '3':
-            install_with_sudoers(script, cmd)
-
-    if choice == '1':
-        install_component(CLI_SCRIPT, CLI_CMD)
-    elif choice == '2':
-        # For GUI, create venv and wrapper script with detached run
-        create_virtualenv()
-        install_customtkinter()
-        create_wrapper_script()
-    else:
-        install_component(CLI_SCRIPT, CLI_CMD)
-        create_virtualenv()
-        install_customtkinter()
-        create_wrapper_script()
+    check_root()
+    install_dependencies()
+    copy_files()
+    install_wrapper()
+    print("\n[✓] InjectHost installed!")
+    print("\nYou can now run:")
+    print("  injecthost      - CLI version")
+    print("  injecthost-gui  - GUI version")
+    print("\nTo uninstall, run:")
+    print("  sudo rm -rf /usr/local/lib/injecthost /usr/local/bin/injecthost /usr/local/bin/injecthost-gui\n")
+    print("If you installed customtkinter just for this tool and want to remove it:")
+    print("  sudo pip3 uninstall customtkinter\n")
 
 if __name__ == "__main__":
     main()

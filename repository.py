@@ -147,7 +147,7 @@ class FileHostsRepository(HostsRepository):
     def read_all_entries(self) -> List[HostsFileEntry]:
         """Read all entries from hosts file with caching."""
         with self._cache_lock:
-            if not self._should_refresh_cache():
+            if not self._should_refresh_cache() and self._cache is not None:
                 return self._cache.copy()
             
             try:
@@ -179,6 +179,21 @@ class FileHostsRepository(HostsRepository):
                 host_entries.append(entry.host_entry)
         
         return host_entries
+    
+    def read_raw_content(self) -> str:
+        """Read the raw content of the hosts file."""
+        try:
+            with open(self.config.hosts_file, 'r') as f:
+                return f.read()
+        except FileNotFoundError:
+            self.logger.error(f"Hosts file not found: {self.config.hosts_file}")
+            raise
+        except PermissionError:
+            self.logger.error(f"Permission denied reading: {self.config.hosts_file}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Unexpected error reading hosts file: {e}")
+            raise
     
     def add_entry(self, entry: HostEntry) -> OperationResult:
         """Add a new host entry with validation and duplicate checking."""
