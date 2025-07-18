@@ -141,10 +141,24 @@ install_mypy() {
     sudo apt-get update
     
     print_status "Installing mypy via system package manager..."
-    sudo apt-get install -y python3-mypy
+    if sudo apt-get install -y python3-mypy; then
+        print_success "System package installation completed successfully"
+        
+        # Check if mypy command is available after system installation
+        if ! command -v mypy >/dev/null 2>&1; then
+            # Sometimes system packages install with different names, try common alternatives
+            if command -v python3 -m mypy >/dev/null 2>&1; then
+                print_status "mypy is available via 'python3 -m mypy'"
+            else
+                print_warning "System package installed but mypy command not found in PATH"
+            fi
+        fi
+    else
+        print_warning "System package installation failed, trying alternative methods..."
+    fi
     
-    # If system package not available, try alternative methods
-    if ! command -v mypy >/dev/null 2>&1; then
+    # If system package not available or mypy command still not found, try alternative methods
+    if ! command -v mypy >/dev/null 2>&1 && ! python3 -c "import mypy" 2>/dev/null; then
         print_status "System package not found, trying pipx..."
         
         # Install pipx if not available
@@ -176,12 +190,16 @@ install_mypy() {
     
     print_success "mypy installation complete!"
     
-    # Check if mypy is in PATH
+    # Check if mypy is available
     if command -v mypy >/dev/null 2>&1; then
         print_success "mypy is available in PATH"
         mypy --version
+    elif python3 -c "import mypy" 2>/dev/null; then
+        print_success "mypy is available as Python module"
+        print_status "Use: python3 -m mypy <files>"
+        python3 -m mypy --version
     else
-        print_warning "mypy is installed but not in PATH"
+        print_warning "mypy installation may have failed or is not accessible"
         print_status "Possible solutions:"
         print_status "1. For pip --user installations: export PATH=\$PATH:~/.local/bin"
         print_status "2. For pipx installations: pipx ensurepath (then restart shell)"
