@@ -140,11 +140,39 @@ install_mypy() {
     print_status "Updating package list..."
     sudo apt-get update
     
-    print_status "Installing pip for Python 3 (if not already installed)..."
-    sudo apt-get install -y python3-pip
+    print_status "Installing mypy via system package manager..."
+    sudo apt-get install -y python3-mypy
     
-    print_status "Installing or upgrading mypy..."
-    pip3 install --user --upgrade mypy
+    # If system package not available, try alternative methods
+    if ! command -v mypy >/dev/null 2>&1; then
+        print_status "System package not found, trying pipx..."
+        
+        # Install pipx if not available
+        if ! command -v pipx >/dev/null 2>&1; then
+            print_status "Installing pipx..."
+            sudo apt-get install -y pipx
+        fi
+        
+        print_status "Installing mypy via pipx..."
+        pipx install mypy
+        
+        # If pipx fails, try pip with --break-system-packages as last resort
+        if ! command -v mypy >/dev/null 2>&1; then
+            print_warning "pipx installation failed, trying pip with --break-system-packages (not recommended)..."
+            read -p "Do you want to proceed with --break-system-packages? (y/N): " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                print_status "Installing pip for Python 3 (if not already installed)..."
+                sudo apt-get install -y python3-pip
+                
+                print_status "Installing mypy with --break-system-packages..."
+                pip3 install --user --upgrade mypy --break-system-packages
+            else
+                print_error "Installation cancelled. Consider using a virtual environment."
+                exit 1
+            fi
+        fi
+    fi
     
     print_success "mypy installation complete!"
     
@@ -154,8 +182,17 @@ install_mypy() {
         mypy --version
     else
         print_warning "mypy is installed but not in PATH"
-        print_status "Add ~/.local/bin to your PATH or run: export PATH=\$PATH:~/.local/bin"
-        print_status "You can also add this line to your ~/.bashrc for permanent access"
+        print_status "Possible solutions:"
+        print_status "1. For pip --user installations: export PATH=\$PATH:~/.local/bin"
+        print_status "2. For pipx installations: pipx ensurepath (then restart shell)"
+        print_status "3. Add the appropriate path to your ~/.bashrc for permanent access"
+        
+        # Try to find mypy location
+        if [ -f ~/.local/bin/mypy ]; then
+            print_status "Found mypy at ~/.local/bin/mypy"
+        elif [ -f ~/.local/share/pipx/venvs/mypy/bin/mypy ]; then
+            print_status "Found mypy installed via pipx"
+        fi
     fi
 }
 
